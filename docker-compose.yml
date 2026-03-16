@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    # We use an env_file to keep our real passwords hidden and secure
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # This volume maps the container's database to our persistent AWS drive
+    volumes:
+      - /mnt/mysql-data:/var/lib/mysql
+    networks:
+      - wp_network
+
+  wordpress:
+    image: wordpress:latest
+    restart: always
+    # Maps port 80 on the server to port 80 on the container for web traffic
+    ports:
+      - "80:80"
+    env_file: .env
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+    # Ensures the database starts before WordPress tries to connect to it
+    depends_on:
+      - db
+    networks:
+      - wp_network
+
+networks:
+  # Creates a private network so WordPress and MySQL can securely talk to each other
+  wp_network:
